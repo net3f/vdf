@@ -92,10 +92,11 @@ pub fn create_discriminant<T: BigNumExt>(seed: &[u8], length: u16) -> T {
     debug_assert!(n >= Zero::zero());
 
     // This generates the smallest prime ≥ n that is of the form n + m*x.
+    let mut sieve = ::bit_vec::BitVec::from_elem(1 << 16, true);
     loop {
         // Speed up prime-finding by quickly ruling out numbers
         // that are known to be composite.
-        let mut sieve = ::bit_vec::BitVec::from_elem(1 << 16, false);
+        sieve.set_all();
         for &(p, q) in SIEVE_INFO.iter() {
             // The reference implementation changes the sign of `n` before taking its
             // remainder. Instead, we leave `n` as positive, but use ceiling
@@ -103,13 +104,13 @@ pub fn create_discriminant<T: BigNumExt>(seed: &[u8], length: u16) -> T {
             // equivalent and potentially faster.
             let mut i: usize = (n.crem_u16(p) as usize * q as usize) % p as usize;
             while i < sieve.len() {
-                sieve.set(i, true);
+                sieve.set(i, false);
                 i += p as usize;
             }
         }
 
         for (i, x) in sieve.iter().enumerate() {
-            if !x {
+            if x {
                 let q = u64::from(M) * u64::from(i as u32);
                 n = n + q;
                 if n.probab_prime(2) {
