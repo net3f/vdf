@@ -106,6 +106,22 @@ fn u64_to_bytes(q: u64) -> [u8; 8] {
     }
 }
 
+/// As on page 10 of Wesolowski's paper, we uniformly sample a prime
+/// from amongst the first 2^129 primes.  According to the prime number
+/// theorem, the prime counting function `π(x)` can be approximated
+/// by `x / log x` asymptotically, so like `2^128` when `x = 2^134` or
+/// `2^122` when `x = 2^128`, which still leaves some margine.
+///
+/// Assuming the Riemann hypothesis, there is stronger approximation
+/// `Li(x) - π(x) = O(\sqrt(x) \log x)` where `Li(x)` is the
+/// [offset logarithmic integral](https://en.wikipedia.org/wiki/Logarithmic_integral_function),
+/// so `Li(2^y) - Li(2) = \int_2^{2^y} dt/ln t = 2^y / y` and
+/// `y = 134` gives at least 128 bits of security.
+///
+/// We may however have use for extra security margin against
+/// an adversary with some influence over the random oracle.
+///
+///
 /// Quote:
 ///
 /// > Creates a random prime based on input s.
@@ -118,6 +134,7 @@ fn hash_prime<T: BigNum>(seed: &[&[u8]]) -> T {
         for i in seed {
             hasher.input(i);
         }
+        // Ideally we should use 17 bytes here for 134 bits
         let n = T::from(&hasher.fixed_result()[..16]);
         if n.probab_prime(2) {
             break n;
